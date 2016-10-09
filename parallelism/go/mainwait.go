@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"sync"
 	"time"
 )
 
@@ -14,12 +15,6 @@ func hash(s string) uint32 {
 		h *= 0x11f
 	}
 	return h
-}
-
-func work(i int, ch chan uint32) {
-	s := fmt.Sprintf("Task %d done!", i)
-	time.Sleep(100 * time.Microsecond)
-	ch <- hash(s)
 }
 
 func main() {
@@ -34,17 +29,26 @@ func main() {
 	fmt.Printf("Task to execute: %d", *taskCount)
 	fmt.Println()
 
-	ch := make(chan uint32, 100)
+	var wg sync.WaitGroup
+	wg.Add(*taskCount)
 
 	start := time.Now()
+	result := make([]uint32, *taskCount)
 
 	for i := 0; i < *taskCount; i++ {
-		go work(i, ch)
+		go func(i int, r *uint32) {
+			s := fmt.Sprintf("Task %d done!", i)
+			time.Sleep(100 * time.Microsecond)
+			*r = hash(s)
+			wg.Done()
+		}(i, &result[i])
 	}
+
+	wg.Wait()
 
 	h := uint32(0)
 	for i := 0; i < *taskCount; i++ {
-		h ^= <-ch
+		h ^= result[i]
 	}
 	elapsed := time.Since(start)
 	fmt.Printf("%d in %s, hash = 0x%x", *taskCount, elapsed, h)
