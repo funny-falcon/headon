@@ -24,7 +24,7 @@ namespace ConsoleApplication
 
             for (int i = 0; i < tasks.Length; i++)
             {
-                 tasks[i] = Work(i);
+                 tasks[i] = Task.Run(()=>Work(i));
             }
 
             Task.WaitAll(tasks);
